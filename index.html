@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PriAxom v20.0 Hyper</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Palette */
+            --bg-deep: #050505;
+            --accent-primary: #00f2ff; /* Cyan */
+            --accent-secondary: #bd00ff; /* Electric Purple */
+            --accent-tertiary: #2a2a2a;
+            
+            /* Glass */
+            --glass-surface: rgba(20, 20, 20, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(20px);
+            
+            /* Spacing */
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --radius-bubble: 18px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #ececec;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- BACKGROUND ART (CSS GPU ANIMATION) --- */
+        .ambient-canvas {
+            position: fixed; inset: 0; z-index: -1;
+            background: #000;
+            overflow: hidden;
+        }
+        .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px); opacity: 0.6;
+            animation: float 20s infinite ease-in-out;
+            will-change: transform;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #0c0c46; top: -100px; left: -100px; animation-duration: 25s; }
+        .orb-2 { width: 300px; height: 300px; background: #2e003e; bottom: -50px; right: -50px; animation-duration: 30s; animation-delay: -5s; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(0, 242, 255, 0.15); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: pulse 10s infinite alternate; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, 50px) rotate(10deg); }
+            66% { transform: translate(-20px, 20px) rotate(-5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        @keyframes pulse { 0% { opacity: 0.3; transform: scale(1); } 100% { opacity: 0.6; transform: scale(1.2); } }
+
+        /* --- MAIN CONTAINER --- */
+        .app-shell {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+        }
+
+        @media(min-width: 600px) {
+            .app-shell {
+                max-width: 450px; height: 90vh;
+                border-radius: 30px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                border: 1px solid var(--glass-border);
+                backdrop-filter: blur(40px);
+                overflow: hidden;
+            }
+        }
+
+        /* --- HEADER --- */
+        .header {
+            padding: 20px 24px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.01);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+        
+        .brand { display: flex; flex-direction: column; }
+        .brand h1 {
+            margin: 0; font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem; font-weight: 700;
+            background: linear-gradient(90deg, #fff, var(--accent-primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .brand span { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+        .status-pill {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.7);
+        }
+        .dot { width: 6px; height: 6px; background: #00ff88; border-radius: 50%; box-shadow: 0 0 10px #00ff88; }
+        .offline .dot { background: #ff3b3b; box-shadow: 0 0 10px #ff3b3b; }
+
+        /* --- CHAT AREA --- */
+        .chat-viewport {
+            flex: 1; overflow-y: auto;
+            padding: 20px 16px;
+            display: flex; flex-direction: column; gap: 18px;
+            scroll-behavior: smooth;
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
+        }
+        
+        .chat-viewport::-webkit-scrollbar { width: 4px; }
+        .chat-viewport::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .msg {
+            max-width: 85%; padding: 14px 18px;
+            font-size: 0.95rem; line-height: 1.5;
+            position: relative; 
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        @keyframes popIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .ai {
+            align-self: flex-start;
+            background: rgba(30, 30, 35, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 2px var(--radius-bubble) var(--radius-bubble) var(--radius-bubble);
+            color: #e0e0e0;
+        }
+
+        .user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent-secondary), #7b2cbf);
+            color: white;
+            border-radius: var(--radius-bubble) var(--radius-bubble) 2px var(--radius-bubble);
+        }
+
+        /* --- INPUT AREA --- */
+        .controls {
+            padding: 16px;
+            padding-bottom: calc(16px + var(--safe-bottom));
+            background: var(--glass-surface);
+            backdrop-filter: var(--glass-blur);
+            border-top: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 20;
+        }
+
+        .input-wrapper {
+            display: flex; gap: 10px; align-items: center;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 6px 6px 6px 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-wrapper:focus-within {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+        }
+
+        input {
+            flex: 1; background: transparent; border: none;
+            color: white; font-size: 1rem; font-family: 'Outfit', sans-serif;
+            outline: none; padding: 8px 0;
+        }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .send-btn {
+            width: 42px; height: 42px; border-radius: 12px;
+            background: var(--accent-primary); border: none;
+            color: #000; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .send-btn:active { transform: scale(0.9); }
+
+        .meta-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.7rem; color: rgba(255,255,255,0.4);
+            font-family: 'Space Grotesk', monospace;
+            padding: 0 4px;
+        }
+        .teach-link {
+            color: var(--accent-primary); cursor: pointer;
+            text-decoration: none; font-weight: 700;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .teach-link:hover { text-decoration: underline; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            display: none; justify-content: center; align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+        .modal-card {
+            width: 100%; max-width: 380px;
+            background: #111;
+            border: 1px solid var(--accent-primary);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.15);
+            border-radius: 24px; padding: 24px;
+            position: relative; overflow: hidden;
+        }
+        
+        .modal-title {
+            margin: 0 0 20px 0; color: white;
+            font-family: 'Space Grotesk'; text-transform: uppercase;
+            letter-spacing: 2px; font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .input-group { margin-bottom: 15px; }
+        .glass-input {
+            width: 100%; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 14px; border-radius: 12px;
+            font-family: 'Outfit'; outline: none; font-size: 0.9rem;
+        }
+        .glass-input:focus { border-color: var(--accent-primary); background: rgba(0,242,255,0.05); }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn {
+            flex: 1; padding: 14px; border-radius: 12px; border: none;
+            font-family: 'Space Grotesk'; font-weight: 700; font-size: 0.85rem;
+            cursor: pointer; text-transform: uppercase;
+        }
+        .btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .btn-primary { background: var(--accent-primary); color: #000; box-shadow: 0 0 15px rgba(0,242,255,0.4); }
+
+        #saveMsg { text-align: center; margin-top: 15px; font-size: 0.7rem; color: var(--accent-primary); font-family: 'Space Grotesk'; min-height: 1em; }
+
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="ambient-canvas">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="app-shell">
+    
+    <header class="header">
+        <div class="brand">
+            <h1>PriAxom v20.0</h1>
+            <span>HyperEngine By Priyam Kesh</span>
+        </div>
+        <div class="status-pill" id="netStatus">
+            <div class="dot"></div>
+            <span id="statusText">SYNCING</span>
+        </div>
+    </header>
+
+    <div class="chat-viewport" id="chatStream">
+        <div class="msg ai">
+            <b>PriAxom v20.0</b> initialized.<br>
+            Hyper-Logic Engine active. Awaiting input.
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="input-wrapper">
+            <input type="text" id="userIn" placeholder="Ask anything..." autocomplete="off" onkeypress="handleKey(event)">
+            <button class="send-btn" onclick="sendMsg()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+        <div class="meta-bar">
+            <span>NODES: <b id="nodeCount" style="color:white">0</b></span>
+            <span class="teach-link" onclick="toggleModal(true)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                TEACH CORE
+            </span>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal-overlay" id="editorModal">
+    <div class="modal-card">
+        <h3 class="modal-title">Inject Knowledge</h3>
+        <div class="input-group">
+            <input type="text" id="topicIn" class="glass-input" placeholder="Topic Trigger (e.g. My Bio)">
+        </div>
+        <div class="input-group">
+            <textarea id="contentIn" class="glass-input" style="height:120px; resize:none;" placeholder="Knowledge content..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button onclick="toggleModal(false)" class="btn btn-ghost">CANCEL</button>
+            <button onclick="saveData()" class="btn btn-primary">UPLOAD</button>
+        </div>
+        <div id="saveMsg"></div>
+    </div>
+</div>
+
+<script>
+    // --- 1. FIREBASE SETUP (EXACT COPY) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAIjjcRUOArjxYef9OtvmXo_MdSYX6m9ew", 
+        authDomain: "priaxom.firebaseapp.com",
+        projectId: "priaxom",
+        storageBucket: "priaxom.firebasestorage.app",
+        messagingSenderId: "160646072036",
+        appId: "1:160646072036:web:91c7cee2c8d2e1b9604ef1",
+        measurementId: "G-GB0M3HQ1B0"
+    };
+
+    let db;
+    let cloudEnabled = false;
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        cloudEnabled = true;
+        updateStatus("LIVE", true);
+    } catch (e) {
+        updateStatus("OFFLINE", false);
+    }
+
+    function updateStatus(text, isOnline) {
+        const el = document.getElementById('netStatus');
+        const txt = document.getElementById('statusText');
+        txt.innerText = text;
+        if(isOnline) el.classList.remove('offline'); else el.classList.add('offline');
+    }
+
+    // --- 2. KNOWLEDGE BASE (PRE-LOADED + LIVE) ---
+    let knowledgeBase = [
+        { topic: "Identity", content: "I am PriAxom v20.0, an advanced AI system. I was upgraded to HyperEngineV20.0 Tier by Priyam Kesh." },
+        { topic: "Priyam Kesh", content: "Priyam Kesh is the developer and creator of this system. He is an expert in AI-Web integration." },
+        { topic: "India", content: "India is the largest democracy in the world, located in South Asia. Its capital is New Delhi." },
+        { topic: "ISRO", content: "ISRO is India's space agency, renowned for the Chandrayaan and Mangalyaan missions." },
+        { topic: "AI", content: "Artificial Intelligence (AI) simulates human intelligence in machines to perform tasks like learning and problem-solving." }
+    ];
+
+    if(cloudEnabled) {
+        db.collection("ai_knowledge").onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const idx = knowledgeBase.findIndex(k => k.topic === change.doc.id);
+                    if(idx !== -1) knowledgeBase[idx].content = change.doc.data().answer;
+                    else knowledgeBase.push({ topic: change.doc.id, content: change.doc.data().answer });
+                }
+            });
+            document.getElementById('nodeCount').innerText = knowledgeBase.length;
+        });
+    }
+
+    // --- 3. THE "APEX" INTELLIGENCE ENGINE ---
+    
+    // Priority 1: Exact Conversational Triggers (Strict Matching)
+    const exactTriggers = {
+        "who are you": "I am PriAxom v20.0, created by Priyam Kesh.",
+        "who made you": "I was created by Priyam Kesh.",
+        "who created you": "My creator is Priyam Kesh.",
+        "what is your name": "My name is PriAxom HyperEngine.",
+        "hello": "Hello! I am ready to assist.",
+        "hi": "Hi there! How can I help?",
+        "good morning": "Good morning! I hope your day goes well.",
+        "good night": "Good night. Systems entering standby mode.",
+        "bye": "Goodbye! See you soon."
+    };
+
+    // Priority 2: Fuzzy Conversational Triggers (Contains Matching)
+    const fuzzyTriggers = {
+        "hello": ["Hello!", "Hi there.", "Greetings."],
+        "hi": ["Hi!", "Hello.", "Hey!"],
+        "how are you": ["I am functioning perfectly.", "Systems operational. How are you?"],
+        "thanks": ["You are welcome.", "Happy to help."],
+        "priyam": ["Priyam Kesh is my creator.", "Oh, you mean GOD?"]
+    };
+
+    function process(query) {
+        const clean = query.toLowerCase().trim();
+
+        // 1. Math Check
+        const math = solveMath(clean);
+        if(math !== null) return `The result is <b>${math}</b>.`;
+
+        // 2. Strict Conversational Check (Fixes the "Who made you" bug)
+        // We check if the input IS exactly one of our triggers
+        if(exactTriggers[clean]) return exactTriggers[clean];
+        // Also check if it ends with punctuation like "Who made you?"
+        const cleanNoPunc = clean.replace(/[?!.]/g, '');
+        if(exactTriggers[cleanNoPunc]) return exactTriggers[cleanNoPunc];
+
+        // 3. Database Search (Weighted Scoring)
+        const tokens = clean.split(/\s+/).filter(w => w.length > 2);
+        let bestMatch = null;
+        let maxScore = 0;
+
+        knowledgeBase.forEach(doc => {
+            let score = 0;
+            const topic = doc.topic.toLowerCase();
+            const content = doc.content.toLowerCase();
+
+            // Logic: Topic Match is King
+            if(topic === clean || topic === cleanNoPunc) score += 200; // Perfect match
+            else if(topic.includes(cleanNoPunc)) score += 100; // Partial topic match
+
+            // Logic: Token Matching
+            tokens.forEach(t => {
+                if(topic.includes(t)) score += 50; // Keyword in topic
+                if(content.includes(t)) score += 10; // Keyword in body
+            });
+
+            if(score > maxScore) {
+                maxScore = score;
+                bestMatch = doc;
+            }
+        });
+
+        if(maxScore >= 50) return bestMatch.content;
+
+        // 4. Fuzzy Chat Fallback (Lowest Priority)
+        for(let key in fuzzyTriggers) {
+            if(clean.includes(key)) {
+                const opts = fuzzyTriggers[key];
+                return opts[Math.floor(Math.random() * opts.length)];
+            }
+        }
+
+        // 5. Ultimate Fallback
+        return "I don't have data on that yet. You can teach me using the [TEACH CORE] button.";
+    }
+
+    // --- 4. MATH ENGINE ---
+    function solveMath(q) {
+        if (!/[0-9]/.test(q)) return null;
+        if (!/[+\-*/^%]|sqrt|sin|cos|tan|log|pi/i.test(q) && !/^\d+$/.test(q)) return null;
+        let expr = q.toLowerCase().replace(/sin/g,'Math.sin').replace(/cos/g,'Math.cos').replace(/tan/g,'Math.tan').replace(/sqrt/g,'Math.sqrt').replace(/log/g,'Math.log10').replace(/pi/g,'Math.PI').replace(/\^/g,'**');
+        expr = expr.replace(/[^0-9.\+\-\*\/\(\)\sMath.PIsincoqrtlog\*]/g, '');
+        try { const r = new Function('return '+expr)(); return Number.isFinite(r)?Math.round(r*100000)/100000:null; } catch{return null;}
+    }
+
+    // --- 5. UI CONTROLLER ---
+    function sendMsg() {
+        const inp = document.getElementById('userIn');
+        const txt = inp.value.trim();
+        if(!txt) return;
+
+        addBubble(txt, 'user');
+        inp.value = '';
+
+        // Dynamic Delay
+        const delay = Math.min(txt.length * 15 + 400, 1200);
+
+        setTimeout(() => {
+            const res = process(txt);
+            addBubble(res, 'ai');
+        }, delay);
+    }
+
+    function addBubble(text, cls) {
+        const box = document.getElementById('chatStream');
+        const div = document.createElement('div');
+        div.className = `msg ${cls}`;
+        div.innerHTML = text;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function handleKey(e) { if(e.key === 'Enter') sendMsg(); }
+    function toggleModal(show) { 
+        const m = document.getElementById('editorModal');
+        m.style.display = show ? 'flex' : 'none'; 
+    }
+
+    function saveData() {
+        const t = document.getElementById('topicIn').value.trim();
+        const c = document.getElementById('contentIn').value.trim();
+        const msg = document.getElementById('saveMsg');
+
+        if(!t || !c) { msg.innerText = "FIELDS CANNOT BE EMPTY"; return; }
+
+        if(cloudEnabled) {
+            msg.innerText = "UPLOADING TO NEURAL CORE...";
+            db.collection("ai_knowledge").doc(t).set({ answer: c, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
+            .then(() => { msg.innerText = "SUCCESS"; setTimeout(() => { document.getElementById('topicIn').value=''; document.getElementById('contentIn').value=''; msg.innerText=''; toggleModal(false); }, 1000); })
+            .catch((e) => { msg.innerText = "ERR: " + e.message; });
+        } else {
+            const idx = knowledgeBase.findIndex(k => k.topic === t);
+            if(idx !== -1) knowledgeBase[idx].content = c; else knowledgeBase.push({ topic: t, content: c });
+            msg.innerText = "SAVED (OFFLINE)"; setTimeout(() => toggleModal(false), 1000);
+        }
+    }
+</script>
+
+</body>
+</html>
