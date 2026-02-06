@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriAxom HyperEngine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f3ff;
+            --secondary: #bd00ff;
+            --bg-deep: #050505;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* --- FLUID AURORA BACKGROUND --- */
+        .art-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: drift 20s infinite alternate ease-in-out;
+        }
+
+        .orb-1 {
+            top: -10%;
+            left: -10%;
+            width: 60vh;
+            height: 60vh;
+            background: radial-gradient(circle, var(--secondary), transparent 60%);
+        }
+
+        .orb-2 {
+            bottom: -20%;
+            right: -10%;
+            width: 70vh;
+            height: 70vh;
+            background: radial-gradient(circle, var(--primary), transparent 60%);
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            top: 40%;
+            left: 30%;
+            width: 40vh;
+            height: 40vh;
+            background: radial-gradient(circle, #0048ff, transparent 60%);
+            opacity: 0.4;
+            animation: driftReverse 25s infinite alternate;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 40px); }
+        }
+        @keyframes driftReverse {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-30px, -40px); }
+        }
+
+        /* --- CONTENT CONTAINER --- */
+        .container {
+            width: 88%;
+            max-width: 420px;
+            text-align: center;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, #a5f3fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            /* Explicitly NOT uppercase to keep your styling */
+        }
+
+        .bio {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .bio strong {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* --- BUTTONS --- */
+        .card-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .model-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 20px 25px;
+            border-radius: 20px; /* Fully rounded/circular corners */
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .model-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        .card-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .model-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .model-tag {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Subtle glowing dots for status */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .v20 .status-dot { background-color: #0aff68; color: #0aff68; }
+        .v25 .status-dot { background-color: #00f3ff; color: #00f3ff; }
+        .v30 .status-dot { background-color: #bd00ff; color: #bd00ff; }
+
+        /* GPU Badge */
+        .gpu-badge {
+            font-size: 0.65rem;
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            color: #ff8fa3;
+            border: 1px solid rgba(255, 143, 163, 0.2);
+        }
+
+        /* --- CANVAS DUST --- */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="art-background">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <canvas id="dust"></canvas>
+
+    <div class="container">
+        <h1>PriAxom HyperEngine</h1>
+        <p class="bio">
+            I'm <strong>Priyam Kesh</strong>, an AI developer.<br>
+            Exploring the boundaries of generative intelligence.
+        </p>
+
+        <div class="card-stack">
+            
+            <a href="v20hyper.html" class="model-card v20">
+                <div class="card-text">
+                    <span class="model-name">PriAxom V20.0 Hyper</span>
+                    <span class="model-tag">Fast & Efficient</span>
+                </div>
+                <div class="status-dot"></div>
+            </a>
+
+            <a href="v25Hyper.html" class="model-card v25">
+                <div class="card-text">
+                    <span class="model-name">PriAxom V25.0 Hyper</span>
+                    <span class="model-tag">Enhanced Logic</span>
+                </div>
+                <div class="status-dot"></div>
+            </a>
+
+            <a href="v30.html" class="model-card v30">
+                <div class="card-text">
+                    <span class="model-name">PriAxom V30.0 <span class="gpu-badge">GPU REQ</span></span>
+                    <span class="model-tag">Ultimate Fidelity</span>
+                </div>
+                <div class="status-dot"></div>
+            </a>
+
+        </div>
+    </div>
+
+    <script>
+        // Smooth floating dust particles
+        const canvas = document.getElementById('dust');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 1.5;
+                this.speedX = Math.random() * 0.2 - 0.1;
+                this.speedY = Math.random() * 0.2 - 0.1;
+                this.opacity = Math.random() * 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            resize();
+            particles = [];
+            for(let i=0; i<60; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        animate();
+    </script>
+</body>
+</html>
